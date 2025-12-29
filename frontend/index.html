@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Tournament</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff;
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff88;
+            text-decoration: none;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav-links a {
+            color: #fff;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: #00ff88;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #00ff88;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: #000;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .tournament-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .tournament-card {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            padding: 1rem;
+            border-left: 4px solid #00ff88;
+        }
+        
+        .game-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: #00ff88;
+            color: #000;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        
+        .prize-pool {
+            color: gold;
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <nav class="navbar">
+            <a href="#" class="logo">CYBER TOURNAMENT</a>
+            <div class="nav-links">
+                <a href="#" @click="currentView = 'home'">Home</a>
+                <a href="#" @click="currentView = 'tournaments'">Tournaments</a>
+                <a href="#" @click="currentView = 'host'" v-if="user">Host Tournament</a>
+                <a href="#" @click="currentView = 'profile'" v-if="user">Profile</a>
+                <a href="#" @click="currentView = 'login'" v-if="!user">Login</a>
+                <a href="#" @click="currentView = 'register'" v-if="!user">Register</a>
+                <a href="#" @click="logout" v-if="user">Logout</a>
+            </div>
+        </nav>
+        
+        <div class="container">
+            <!-- Home View -->
+            <div v-if="currentView === 'home'" class="card">
+                <h1>Welcome to Cyber Tournament Platform</h1>
+                <p>Organize and participate in esports tournaments</p>
+                <div class="tournament-grid">
+                    <div v-for="tournament in featuredTournaments" :key="tournament.id" class="tournament-card">
+                        <h3>{{ tournament.name }}</h3>
+                        <span class="game-badge">{{ tournament.game }}</span>
+                        <p>{{ tournament.description }}</p>
+                        <div class="prize-pool">Prize: ${{ tournament.prize_pool }}</div>
+                        <button @click="viewTournament(tournament.id)">View Details</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Login View -->
+            <div v-if="currentView === 'login'" class="card">
+                <h2>Login</h2>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" v-model="loginForm.username" @keyup.enter="login">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" v-model="loginForm.password" @keyup.enter="login">
+                </div>
+                <button @click="login">Login</button>
+                <p v-if="loginError" style="color: red; margin-top: 1rem;">{{ loginError }}</p>
+            </div>
+            
+            <!-- Register View -->
+            <div v-if="currentView === 'register'" class="card">
+                <h2>Register</h2>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" v-model="registerForm.username">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" v-model="registerForm.email">
+                </div>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" v-model="registerForm.full_name">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" v-model="registerForm.password">
+                </div>
+                <button @click="register">Register</button>
+                <p v-if="registerError" style="color: red; margin-top: 1rem;">{{ registerError }}</p>
+            </div>
+            
+            <!-- Tournaments View -->
+            <div v-if="currentView === 'tournaments'" class="card">
+                <h2>Tournaments</h2>
+                <div class="tournament-grid">
+                    <div v-for="tournament in tournaments" :key="tournament.id" class="tournament-card">
+                        <h3>{{ tournament.name }}</h3>
+                        <span class="game-badge">{{ tournament.game }}</span>
+                        <p>{{ tournament.description }}</p>
+                        <div class="prize-pool">Prize: ${{ tournament.prize_pool }}</div>
+                        <p>Status: {{ tournament.status }}</p>
+                        <button @click="viewTournament(tournament.id)">View Details</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Host Tournament View -->
+            <div v-if="currentView === 'host'" class="card">
+                <h2>Host Tournament</h2>
+                <div class="form-group">
+                    <label>Tournament Name</label>
+                    <input type="text" v-model="tournamentForm.name">
+                </div>
+                <div class="form-group">
+                    <label>Game</label>
+                    <select v-model="tournamentForm.game">
+                        <option value="CS:GO">CS:GO</option>
+                        <option value="Dota 2">Dota 2</option>
+                        <option value="Valorant">Valorant</option>
+                        <option value="League of Legends">League of Legends</option>
+                        <option value="Overwatch 2">Overwatch 2</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea v-model="tournamentForm.description" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Max Teams</label>
+                    <input type="number" v-model="tournamentForm.max_teams">
+                </div>
+                <div class="form-group">
+                    <label>Prize Pool ($)</label>
+                    <input type="number" v-model="tournamentForm.prize_pool">
+                </div>
+                <button @click="createTournament">Create Tournament</button>
+                <p v-if="hostError" style="color: red; margin-top: 1rem;">{{ hostError }}</p>
+                <p v-if="hostSuccess" style="color: #00ff88; margin-top: 1rem;">{{ hostSuccess }}</p>
+            </div>
+            
+            <!-- Profile View -->
+            <div v-if="currentView === 'profile'" class="card">
+                <h2>Profile</h2>
+                <div v-if="user">
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Full Name:</strong> {{ user.full_name }}</p>
+                    <p><strong>Member Since:</strong> {{ new Date(user.created_at).toLocaleDateString() }}</p>
+                </div>
+            </div>
+            
+            <!-- Tournament Details View -->
+            <div v-if="currentView === 'tournament-details'" class="card">
+                <h2>{{ selectedTournament.name }}</h2>
+                <span class="game-badge">{{ selectedTournament.game }}</span>
+                <p>{{ selectedTournament.description }}</p>
+                <div class="prize-pool">Prize: ${{ selectedTournament.prize_pool }}</div>
+                <p>Status: {{ selectedTournament.status }}</p>
+                <p>Max Teams: {{ selectedTournament.max_teams }}</p>
+                <button @click="currentView = 'tournaments'">Back to Tournaments</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="src/main.js"></script>
+</body>
+</html>
